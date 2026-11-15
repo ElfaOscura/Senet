@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#120d08" />
+    <title>Senet · El Juego de los Pasajes</title>
+    <meta name="description" content="Senet, el antiguo juego de mesa egipcio, jugable en 3D." />
+
+    <!-- Tipografías -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&family=Metamorphous&family=Noto+Sans+Egyptian+Hieroglyphs&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="./assets/main.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/style.css">
+  </head>
+
+  <body class="bg-sandstone text-ivory font-sans antialiased overflow-hidden select-none">
+    <!-- Pantalla de carga -->
+    <div id="loader" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0c0804]">
+      <div class="ankh text-7xl text-gold-bright">☥</div>
+      <p class="mt-6 font-display tracking-[0.4em] text-gold text-sm uppercase">Abriendo las puertas del Duat</p>
+      <div class="mt-6 h-px w-56 bg-gold/20 overflow-hidden">
+        <div id="loader-bar" class="h-full w-0 bg-gradient-to-r from-gold-dark to-gold-bright"></div>
+      </div>
+    </div>
+
+    <!-- Partículas de polvo antiguo (Particles.js) -->
+    <div id="particles-js" class="fixed inset-0 z-[5] pointer-events-none"></div>
+
+    <!-- Escena 3D -->
+    <div id="scene-container" class="fixed inset-0 z-0"></div>
+
+    <!-- Viñeta cálida sobre la escena -->
+    <div class="fixed inset-0 z-[6] pointer-events-none vignette"></div>
+
+    <!-- HUD -->
+    <main id="hud" class="fixed inset-0 z-10 pointer-events-none">
+      <!-- Título -->
+      <!-- Título + Botón de sonido -->
+      <header id="title-bar" class="absolute top-5 left-1/2 -translate-x-1/2 text-center pointer-events-auto">
+        <div class="relative inline-block">
+          <h1 class="font-display text-3xl md:text-4xl font-bold tracking-[0.35em] text-gold-gradient">SENET</h1>
+          <p class="mt-1 text-[0.65rem] md:text-xs uppercase tracking-[0.5em] text-ivory/60">El Juego de los Pasajes</p>
+        </div>
+      </header>
+            <!-- ================= HUD MÓVIL (solo ≤640px) ================= -->
+      <div id="mobile-hud" class="mobile-only">
+        <!-- Barra superior: jugador y faraón -->
+        <div id="m-topbar" class="glass">
+          <div id="m-p1" class="m-player is-active">
+            <span class="token-dot token-light"></span>
+            <div class="m-player-text">
+              <span class="m-name">Marfil</span>
+              <span class="m-sub">Tú</span>
+            </div>
+            <span id="m-p1-score" class="m-score">0</span>
+          </div>
+          <div id="m-p2" class="m-player">
+            <span class="token-dot token-dark"></span>
+            <div class="m-player-text">
+              <span class="m-name">Arhestan</span>
+              <span class="m-sub">Faraón</span>
+            </div>
+            <span id="m-p2-score" class="m-score">0</span>
+          </div>
+        </div>
+
+        <!-- Tablillas + resultado (esquina superior derecha) -->
+        <div id="m-sticks" class="glass">
+          <div class="m-sticks-main">
+            <div class="m-sticks-row">
+              <div class="stick-chip" data-stick="0"></div>
+              <div class="stick-chip" data-stick="1"></div>
+              <div class="stick-chip" data-stick="2"></div>
+              <div class="stick-chip" data-stick="3"></div>
+            </div>
+            <span id="m-roll-result">–</span>
+          </div>
+          <span id="m-roll-extra"></span>
+        </div>
+
+        <!-- Estado de la partida -->
+        <p id="m-status"></p>
+
+        <!-- Barra inferior de botones -->
+        <div id="m-dock" class="glass">
+          <button id="m-btn-sound" class="m-round" role="switch" aria-checked="true" aria-label="Activar o desactivar sonido">
+            <svg class="icon-on" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+            </svg>
+            <svg class="icon-off" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <line x1="23" y1="9" x2="17" y2="15" />
+              <line x1="17" y1="9" x2="23" y2="15" />
+            </svg>
+          </button>
+
+          <button id="m-btn-style" class="m-round" aria-label="Cambiar diseño de ficha">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2" />
+              <polyline points="2 17 12 22 22 17" />
+              <polyline points="2 12 12 17 22 12" />
+            </svg>
+          </button>
+
+          <button id="m-btn-roll" class="btn-gold">Lanzar tablillas</button>
+
+          <button id="m-btn-new" class="m-round" aria-label="Nueva partida">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10" />
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <!-- Frases del Faraón Arhestan I (las controla game.js) -->
+      <!-- Frases del Faraón Arhestan I -->
+            <!-- Frases del Faraón Arhestan I (las controla game.js) -->
+      <div id="taunt-wrap" class="absolute top-24 left-0 right-0 flex justify-center px-4">
+        <div id="taunt" class="glass-strong rounded-2xl px-6 py-4 text-center">
+          <p class="font-display text-[0.65rem] uppercase tracking-[0.35em] text-gold">☥ Faraón Arhestan I</p>
+          <p id="taunt-text" class="mt-1 font-sans text-base italic leading-snug text-ivory md:text-lg"></p>
+        </div>
+      </div>
+
+      <!-- Panel izquierdo: jugadores y turno -->
+      <aside
+        id="panel-left"
+        class="glass pointer-events-auto absolute left-4 top-24 w-64 md:w-72 rounded-2xl p-5 max-h-[calc(100vh-8rem)] overflow-y-auto"
+      ><!-- Control de Sonido (Switch con icono Lucide) -->
+        <div class="flex items-center justify-between pb-4 border-b border-gold/20">
+          <div class="flex items-center gap-2.5">
+            <!-- Icono SVG de Sonido (Lucide Volume-2 / Volume-X) -->
+            <svg id="sound-svg-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gold">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path id="sound-wave-path" class="sound-wave" d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+              <path class="sound-wave" d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              <g id="sound-x" style="display: none">
+                <line x1="22" x2="16" y1="9" y2="15" />
+                <line x1="16" x2="22" y1="9" y2="15" />
+              </g>
+            </svg>
+            <span class="font-display text-xs tracking-wider text-gold uppercase">Audio del juego</span>
+          </div>
+
+          <!-- Switch deslizante -->
+          <button
+            id="btn-sound-switch"
+            class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none cursor-pointer bg-gold/20 border border-gold/40"
+            role="switch"
+            aria-checked="true"
+            aria-label="Activar o desactivar sonido"
+          >
+            <span
+              id="sound-switch-thumb"
+              class="inline-block h-4 w-4 transform rounded-full bg-gold-bright transition-transform translate-x-6 shadow-md"
+            ></span>
+          </button>
+        </div>
+        <h2 class="panel-title mt-4"><span class="hiero">𓀀</span>Jugadores<span class="hiero hiero-r">𓀀</span></h2>
+
+        <div id="player-1-card" class="player-card is-active mt-4">
+          <div class="flex items-center gap-3">
+            <span class="token-dot token-light"></span>
+            <div class="flex-1">
+              <p class="font-display text-sm tracking-wider">Marfil</p>
+              <p class="text-[0.7rem] text-ivory/50">Tú</p>
+            </div>
+            <!-- Botón para cambiar el modelo de ficha -->
+            <button
+              id="btn-change-style"
+              class="group/btn relative grid h-8 w-8 place-items-center rounded-lg border border-gold/30 bg-gold/10 text-gold transition hover:border-gold hover:bg-gold/25 hover:text-gold-bright cursor-pointer"
+              title="Cambiar diseño de ficha"
+              aria-label="Cambiar diseño de ficha"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="transition-transform duration-300 group-hover/btn:rotate-90">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.66-5.66"></path>
+              </svg>
+            </button>
+            <span id="p1-score" class="font-display text-2xl text-gold-bright">0</span>
+          </div>
+          <p class="mt-2 text-[0.7rem] text-ivory/50">Fichas fuera del tablero</p>
+        </div>
+
+        <div id="player-2-card" class="player-card mt-3">
+          <div class="flex items-center gap-3">
+            <span class="token-dot token-dark"></span>
+            <div class="flex-1">
+              <p class="font-display text-sm tracking-wider">Ébano</p>
+              <p id="p2-label" class="text-[0.7rem] text-ivory/50">Faraón Arhestan I</p>
+            </div>
+            <span id="p2-score" class="font-display text-2xl text-gold-bright">0</span>
+          </div>
+          <p class="mt-2 text-[0.7rem] text-ivory/50">Fichas fuera del tablero</p>
+        </div>
+
+        <div class="divider my-5"></div>
+
+        <h2 class="panel-title"><span class="hiero">𓇳</span>Turno<span class="hiero hiero-r">𓇳</span></h2>
+        <p id="turn-indicator" class="mt-3 font-display text-lg text-gold-bright">Turno de Marfil</p>
+        <p id="status-text" class="mt-1 text-xs leading-relaxed text-ivory/60">
+          Lanza las tablillas para comenzar.
+        </p>
+
+        <div class="divider my-5"></div>
+
+               <button id="btn-new-game" class="btn-ghost w-full">Nueva partida</button>
+
+        <a
+          href="https://github.com/ElfaOscura/Senet"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="github-link mt-4 justify-center"
+          aria-label="Ver el proyecto en GitHub"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+          </svg>
+          <span>Ver en GitHub</span>
+        </a>
+      </aside>
+
+      <!-- Panel derecho: tablillas y registro -->
+      <aside
+        id="panel-right"
+        class="glass pointer-events-auto absolute right-4 top-24 w-64 md:w-72 rounded-2xl p-5 max-h-[calc(100vh-8rem)] flex flex-col"
+      >
+        <h2 class="panel-title"><span class="hiero">𓂝</span>Tablillas<span class="hiero hiero-r">𓂝</span></h2>
+
+        <div id="sticks-display" class="mt-4 flex justify-center gap-3">
+          <div class="stick-chip" data-stick="0"></div>
+          <div class="stick-chip" data-stick="1"></div>
+          <div class="stick-chip" data-stick="2"></div>
+          <div class="stick-chip" data-stick="3"></div>
+        </div>
+
+        <div class="mt-4 text-center">
+          <p class="text-[0.65rem] uppercase tracking-[0.3em] text-ivory/50">Resultado</p>
+          <p id="roll-result" class="font-display text-6xl text-gold-bright leading-none mt-1">–</p>
+          <p id="roll-extra" class="mt-2 h-4 text-[0.7rem] text-gold"></p>
+        </div>
+
+        <button id="btn-roll" class="btn-gold mt-5 w-full">Lanzar tablillas</button>
+
+        <div class="divider my-5"></div>
+
+        <h2 class="panel-title"><span class="hiero">𓏛</span>Crónica<span class="hiero hiero-r">𓏛</span></h2>
+        <ul id="game-log" class="mt-3 flex-1 min-h-[6rem] space-y-2 overflow-y-auto pr-1 text-xs text-ivory/70"></ul>
+      </aside>
+
+      <!-- Leyenda inferior -->
+      <footer class="absolute bottom-4 left-1/2 -translate-x-1/2 text-center text-[0.65rem] tracking-widest uppercase text-ivory/40">
+        Arrastra para orbitar · Rueda para zoom · Clic en una ficha para moverla
+      </footer>
+      <!-- Tooltip flotante para casillas especiales -->
+      <div
+        id="tile-tooltip"
+        class="fixed z-30 pointer-events-none hidden max-w-xs rounded-xl border border-gold/40 bg-[#140d06]/90 px-3.5 py-2.5 text-left shadow-2xl backdrop-blur-md transition-opacity duration-200"
+      >
+        <p id="tooltip-title" class="font-display text-xs tracking-wider text-gold-bright uppercase"></p>
+        <p id="tooltip-desc" class="mt-0.5 text-[0.7rem] leading-snug text-ivory/80"></p>
+      </div>
+    </main>
+
+    <!-- Botón de reglas: papiro flotante -->
+    <button
+      id="papyrus-btn"
+      class="fixed bottom-8 right-[calc(17rem-5px)] md:right-[calc(19rem-5px)] z-20 pointer-events-auto group"
+      aria-label="Abrir reglas del Senet"
+    >
+      <div class="papyrus">
+        <span class="papyrus-roll papyrus-roll-top"></span>
+        <div class="papyrus-body">
+          <span class="font-display text-[0.7rem] tracking-[0.25em] text-[#4a2f0e] uppercase">Reglas</span>
+          <span class="papyrus-glyph">𓂀</span>
+        </div>
+        <span class="papyrus-roll papyrus-roll-bottom"></span>
+      </div>
+    </button>
+
+    <!-- Modal de reglas -->
+    <div id="rules-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4" aria-hidden="true">
+      <div id="rules-backdrop" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+
+      <section
+        id="rules-card"
+        class="glass-strong relative w-full max-w-2xl max-h-[85vh] overflow-hidden rounded-3xl"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="rules-title"
+      >
+        <div class="flex items-start justify-between border-b border-gold/20 px-7 py-5">
+          <div>
+            <p class="text-[0.65rem] uppercase tracking-[0.4em] text-gold/70">Sabiduría de los antiguos</p>
+            <h2 id="rules-title" class="font-display text-2xl tracking-widest text-gold-gradient">Reglas del Senet</h2>
+          </div>
+          <button id="rules-close" class="btn-icon" aria-label="Cerrar">✕</button>
+        </div>
+
+        <div class="overflow-y-auto px-7 py-6 text-sm leading-relaxed text-ivory/80 max-h-[calc(85vh-5.5rem)] space-y-6">
+          <div>
+            <h3 class="rules-h">Objetivo</h3>
+            <p>
+              Ser el primero en sacar las cinco fichas del tablero. El Senet simboliza el viaje del alma
+              a través del Duat, el inframundo egipcio, hacia la vida eterna.
+            </p>
+              
+          </div>
+
+          <div>
+            <h3 class="rules-h">El tablero</h3>
+            <p>
+              30 casillas en tres filas de diez, recorridas en forma de serpiente: la fila superior de
+              izquierda a derecha, la central de derecha a izquierda y la inferior de nuevo de izquierda a derecha.
+              Cada jugador tiene 5 fichas, colocadas alternadas en las 10 primeras casillas.
+            </p>
+          </div>
+
+          <div>
+            <h3 class="rules-h">Las tablillas</h3>
+            <p>Se lanzan cuatro tablillas con una cara clara y otra oscura. Se cuentan las caras claras:</p>
+            <ul class="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-ivory/90">
+              <li><span class="rule-num">1</span> cara clara → avanza 1 · <em class="text-gold">repites</em></li>
+              <li><span class="rule-num">2</span> caras claras → avanza 2</li>
+              <li><span class="rule-num">3</span> caras claras → avanza 3</li>
+              <li><span class="rule-num">4</span> caras claras → avanza 4 · <em class="text-gold">repites</em></li>
+              <li class="col-span-2"><span class="rule-num">0</span> caras claras → avanza 5 · <em class="text-gold">repites</em></li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="rules-h">Movimiento</h3>
+            <ul class="list-disc space-y-1 pl-5 marker:text-gold">
+              <li>Mueves una ficha propia tantas casillas como indique la tirada.</li>
+              <li>Si caes en una casilla con una ficha rival aislada, intercambian posiciones.</li>
+              <li>Dos o más fichas del mismo color juntas están protegidas y no pueden ser desplazadas. Tampoco las fichas que están en las casillas 26, 28, 29 y 30.</li>
+              <li>No puedes saltar sobre tres o más fichas rivales consecutivas (un bloqueo).</li>
+              <li>No puedes caer en una casilla ocupada por una de tus propias fichas.</li>
+              <li>Si no tienes ningún movimiento legal, pierdes el turno.</li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 class="rules-h">Casillas especiales</h3>
+            <dl class="space-y-2">
+              <div><dt class="inline font-semibold text-gold-bright">15 · Casa del Renacimiento (☥):</dt> <dd class="inline">a ella vuelven las fichas que caen en el agua.</dd></div>
+              <div><dt class="inline font-semibold text-gold-bright">26 · Casa de la Felicidad:</dt> <dd class="inline">toda ficha debe detenerse aquí antes de seguir; desde ella se sale con un 5.</dd></div>
+              <div><dt class="inline font-semibold text-gold-bright">27 · Casa de las Aguas:</dt> <dd class="inline">si caes aquí, regresas a la casilla 15 (o a la primera libre anterior).</dd></div>
+              <div><dt class="inline font-semibold text-gold-bright">28 · Casa de las Tres Verdades:</dt> <dd class="inline">para salir necesitas sacar exactamente un 3.</dd></div>
+              <div><dt class="inline font-semibold text-gold-bright">29 · Casa de Re-Atum:</dt> <dd class="inline">para salir necesitas sacar exactamente un 2.</dd></div>
+              <div><dt class="inline font-semibold text-gold-bright">30 · Casa de Horus:</dt> <dd class="inline">para salir necesitas sacar exactamente un 1.</dd></div>
+            </dl>
+          </div>
+
+          <p class="border-t border-gold/20 pt-4 text-xs italic text-ivory/50">
+            Las reglas del Senet original se perdieron con el tiempo; esta versión sigue la reconstrucción
+            más aceptada por los egiptólogos modernos.
+          </p>
+          <a
+            href="https://github.com/ElfaOscura/Senet"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="github-link justify-center"
+            aria-label="Ver el proyecto en GitHub"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+            </svg>
+            <span>Ver en GitHub</span>
+          </a>
+        </div>
+      </section>
+    </div>
+
+    <!-- Particles.js (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+    <!-- Aplicación (Tailwind, Three.js y GSAP se importan desde src/main.js) -->
+  </body>
+</html>
