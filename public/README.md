@@ -74,25 +74,27 @@ Todo el escenario, las texturas y los efectos de sonido se generan en el propio 
 
 ---
 
-## 🚀 jugar y uso local
+## 🚀 Instalación y uso local
 
-**Online:** abre **https://elfaoscura.github.io/Senet/** en cualquier navegador moderno, en escritorio o móvil. No hay que instalar nada.
+Necesitas [Node.js](https://nodejs.org/) 18 o superior.
 
-**En local:** este repositorio contiene la versión compilada del juego, lista para publicar. Para ejecutarla en tu equipo:
+```bash
+# 1. Clona el repositorio
+git clone https://github.com/ElfaOscura/Senet.git
+cd Senet
 
-1. Descarga el repositorio (**Code → Download ZIP**) y descomprímelo.
-2. Sírvelo con cualquier servidor estático. Por ejemplo, con Node.js:
-   ```bash
-   npx serve
-   ```
-   o con Python:
-   ```bash
-   python -m http.server 8000
-   ```
-3. Abre la dirección que te indique la terminal (`http://localhost:3000` o `http://localhost:8000`).
+# 2. Instala las dependencias
+npm install
 
-> No abras `index.html` con doble clic: los navegadores bloquean los módulos de JavaScript desde `file://`, y el juego no cargaría.
+# 3. Inicia el servidor de desarrollo
+npm run dev
 
+# 4. Compila para producción (genera la carpeta dist/)
+npm run build
+
+# 5. (Opcional) Previsualiza la versión compilada
+npm run preview
+```
 
 ---
 
