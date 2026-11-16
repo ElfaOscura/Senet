@@ -936,7 +936,8 @@ async function main() {
   /* ---- Interfaz: partículas, reglas y papiro flotante ---- */
   initParticles();
   initRulesModal();
-
+  initRulesModal();
+  const welcome = initWelcomeModal();
   // Flotación muy sutil del papiro (los paneles laterales permanecen quietos)
   gsap.to('#papyrus-btn', { y: -4, rotation: 0.6, duration: 3.4, ease: 'sine.inOut', yoyo: true, repeat: -1 });
 
@@ -981,7 +982,84 @@ async function main() {
         }
       },
       2.2,
-    );
+  )
+  .add(() => welcome.show(), '+=0.3');
 }
+/* ==========================================================================
+   MODAL DE BIENVENIDA
+   ========================================================================== */
+function initWelcomeModal() {
+  const modal = $('#welcome-modal');
+  const card = $('#welcome-card');
+  const backdrop = $('#welcome-backdrop');
+  const startBtn = $('#welcome-start');
+  if (!modal) return { show() {} };
 
+  const STORAGE_KEY = 'senet:welcomed';
+  const SHOW_ONLY_ONCE = true; // false = aparece en cada visita
+  let isOpen = false;
+
+  const alreadySeen = () => {
+    try {
+      return localStorage.getItem(STORAGE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  };
+  const markSeen = () => {
+    try {
+      localStorage.setItem(STORAGE_KEY, '1');
+    } catch {
+      /* sin almacenamiento: no pasa nada */
+    }
+  };
+
+  // El botón de lanzar late hasta el primer clic
+  const hintRollButton = () => {
+    const btns = ['#btn-roll', '#m-btn-roll'].map((s) => $(s)).filter(Boolean);
+    btns.forEach((b) => b.classList.add('btn-attention'));
+    const stop = () => btns.forEach((b) => b.classList.remove('btn-attention'));
+    btns.forEach((b) => b.addEventListener('click', stop, { once: true }));
+  };
+
+  const close = () => {
+    if (!isOpen) return;
+    isOpen = false;
+    markSeen();
+    gsap.killTweensOf([backdrop, card]);
+    gsap.to(card, { y: 10, scale: 0.98, opacity: 0, duration: 0.2, ease: 'power2.in' });
+    gsap.to(backdrop, {
+      opacity: 0,
+      duration: 0.3,
+      onComplete: () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.setAttribute('aria-hidden', 'true');
+        hintRollButton();
+      },
+    });
+  };
+
+  const show = () => {
+    if (isOpen || (SHOW_ONLY_ONCE && alreadySeen())) return;
+    isOpen = true;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+    gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: 'power1.out' });
+    gsap.fromTo(
+      card,
+      { y: 24, scale: 0.96, opacity: 0 },
+      { y: 0, scale: 1, opacity: 1, duration: 0.6, ease: 'power2.out' },
+    );
+    startBtn.focus({ preventScroll: true });
+  };
+
+  startBtn.addEventListener('click', close);
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') close();
+  });
+
+  return { show };
+}
 main();
