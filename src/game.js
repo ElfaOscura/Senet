@@ -628,9 +628,11 @@ export function initGame(world) {
     return phraseBag[mood].pop();
   }
 
- function hideTaunt(delay) {
-    tauntTl?.kill();
-    tauntTl = gsap.to(tauntEl, { autoAlpha: 0, duration: 0.7, ease: 'power1.in', delay });
+  let tauntHideTween = null;
+
+  function hideTaunt(delay) {
+    tauntHideTween?.kill(); // solo mata la orden de ocultar anterior, no la de mostrar
+    tauntHideTween = gsap.to(tauntEl, { autoAlpha: 0, duration: 0.7, ease: 'power1.in', delay });
   }
 
   function say(mood) {
@@ -639,11 +641,12 @@ export function initGame(world) {
     addLog(`Faraón Arhestan I: «${text}»`, 'log-p2');
 
     tauntTl?.kill();
+    tauntHideTween?.kill();
     tauntTl = gsap.fromTo(tauntEl, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.5, ease: 'power2.out' });
 
     // voz y texto aparecen a la vez; el texto se oculta 0.8 s después de que termine la voz
     const voiced = sound.playVoice(audio, () => hideTaunt(0.8));
-    if (!voiced) hideTaunt(4.9); // 0.5 de entrada + 4.2 de lectura, como antes
+    if (!voiced) hideTaunt(4.7); // 0.5 de aparición + unos 4 s de lectura
 
     turnsSinceTaunt = 0;
   }
@@ -872,6 +875,7 @@ export function initGame(world) {
     master?.kill();
     rollTl?.kill();
     tauntTl?.kill();
+    tauntHideTween?.kill();
     sound.stopVoice();
     gsap.killTweensOf(rollResultEls);
     sticks.forEach((s) => {
